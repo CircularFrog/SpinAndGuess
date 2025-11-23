@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Christmas Spin & Guess</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+    :root {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f7f7fa;
+      color: #222;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+      min-height: 100vh;
+    }
+    .app {
+      max-width: 480px;
+      width: 100%;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+    h1 {
+      text-align: center;
+      margin: 0 0 8px;
+      font-size: 1.4rem;
+    }
+    .scores {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .team {
+      flex: 1;
+      padding: 8px;
+      border-radius: 8px;
+      text-align: center;
+      background: #ffffff;
+      box-shadow: 0 0 4px rgba(0,0,0,0.08);
+    }
+    .team.active {
+      outline: 2px solid #007aff;
+    }
+    .team-name {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .team-score {
+      font-size: 1.6rem;
+      font-weight: 700;
+    }
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 8px 0;
+      font-size: 0.9rem;
+      color: #555;
+    }
+    .timer {
+      font-size: 2.2rem;
+      text-align: center;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .spinner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .spinner-label {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .spinner-mode {
+      font-size: 1.3rem;
+      min-height: 1.4em;
+      margin-bottom: 8px;
+    }
+    .spinner-wheel {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      /* rotate gradient so 0deg is at the TOP (12 o'clock) */
+      background: conic-gradient(
+        from -90deg,
+        #ffe0e0 0deg 90deg,   /* top - DRAW */
+        #e0ffe0 90deg 180deg, /* right - MIME */
+        #e0e8ff 180deg 270deg,/* bottom - HUM */
+        #fff4d6 270deg 360deg /* left - BUILD */
+      );
+      margin-bottom: 8px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.15);
+    }
+    .spinner-arrow {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 4px;
+      height: 45%;
+      background: #222;
+      transform-origin: bottom center;
+      transform: translate(-50%, -100%) rotate(0deg);
+      border-radius: 2px;
+    }
+    .spinner-center {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      background: #fff;
+      border-radius: 50%;
+      border: 2px solid #222;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .spinner-labels {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.6rem;
+      color: #333;
+      pointer-events: none;
+    }
+    .spinner-labels div {
+      position: absolute;
+      text-align: center;
+      width: 50px;
+    }
+    .spinner-labels .top { top: 4px; left: 50%; transform: translateX(-50%); }
+    .spinner-labels .right { right: 4px; top: 50%; transform: translateY(-50%) rotate(90deg); }
+    .spinner-labels .bottom { bottom: 4px; left: 50%; transform: translateX(-50%) rotate(180deg); }
+    .spinner-labels .left { left: 4px; top: 50%; transform: translateY(-50%) rotate(-90deg); }
+
+    .card {
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+      box-shadow: 0 0 6px rgba(0,0,0,0.06);
+      margin-bottom: 12px;
+      min-height: 80px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .card-label {
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 4px;
+    }
+    .card-text {
+      font-size: 1.4rem;
+      font-weight: 600;
+    }
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.05s ease, box-shadow 0.1s ease;
+    }
+    button:active {
+      transform: translateY(1px);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.2) inset;
+    }
+    button:disabled {
+      opacity: 0.4;
+      cursor: default;
+      transform: none;
+      box-shadow: none;
+    }
+    .btn-spin { display:none; } /* no manual spin needed now */
+    .btn-correct { background: #34c759; color: #fff; flex: 1; }
+    .btn-pass { background: #ff9500; color: #fff; flex: 1; }
+    .btn-start { background: #34c759; color: #fff; width: 100%; }
+    .btn-reset { background: #ff3b30; color: #fff; width: 100%; }
+
+    .info {
+      font-size: 0.8rem;
+      color: #777;
+      margin-top: 4px;
+      text-align: center;
+    }
+</style>
+</head>
+<body>
+<div class="app">
+<h1>🎄 Spin & Guess</h1>
+
+<div class="scores">
+  <div class="team" id="team-0">
+    <div class="team-name">Team A</div>
+    <div class="team-score" id="team-0-score">0</div>
+  </div>
+  <div class="team" id="team-1">
+    <div class="team-name">Team B</div>
+    <div class="team-score" id="team-1-score">0</div>
+  </div>
+</div>
+
+<div class="status-row">
+  <div id="phase-label">Idle</div>
+  <div id="pass-status">Passes used: 0 / 1</div>
+</div>
+
+<div class="timer" id="timer">-</div>
+
+<div class="spinner">
+  <div class="spinner-label">Spinner</div>
+  <div class="spinner-wheel">
+    <div class="spinner-arrow" id="spinner-arrow"></div>
+    <div class="spinner-center"></div>
+    <div class="spinner-labels">
+      <div class="top">DRAW</div>
+      <div class="right">MIME</div>
+      <div class="bottom">HUM</div>
+      <div class="left">BUILD</div>
+    </div>
+  </div>
+  <div class="spinner-mode" id="spinner-mode">Tap Start to begin</div>
+  <button class="btn-spin" id="btn-spin">SPIN</button>
+</div>
+
+<div class="card">
+  <div class="card-label">Card</div>
+  <div class="card-text" id="card-text">Press "Start Round" to begin</div>
+</div>
+
+<div class="buttons">
+  <button class="btn-correct" id="btn-correct">Correct</button>
+  <button class="btn-pass" id="btn-pass">Pass</button>
+  <button class="btn-start" id="btn-start">Start Round</button>
+  <button class="btn-reset" id="btn-reset">Reset Game</button>
+</div>
+
+<div class="info">
+  Main round: 60s · Steal round: 10s · 1 pass per round<br/>
+  If the other team guesses the passed card, they steal <b>all</b> that round’s points.
+</div>
+</div>
+
+<script>
+// --- Game config ---
+const ROUND_DURATION = 60;
+const STEAL_DURATION = 10;
+const MAX_PASSES = 1;
+const MODES = ["DRAW", "MIME", "HUM", "BUILD"];
+
+// Cards
+const ALL_CARDS = [
+  "Penguin", "Reindeer", "Santa Claus", "Mrs Claus", "Snowman",
+  "Christmas Tree", "Snow Globe", "Sleigh", "Elf", "Rudolph",
+  "Turkey", "Pigs in Blankets", "Mince Pie", "Christmas Cracker",
+  "North Pole", "Chimney", "Stocking", "Candy Cane", "Gingerbread Man",
+  "King Charles", "David Beckham", "Harry Potter",
+  "James Bond", "The Grinch", "Frosty the Snowman",
+  "Polar Bear", "Present", "TV Remote", "Football",
+  "Scarf", "Gloves", "Hot Chocolate",
+  "Christmas Lights", "Bauble", "Skiing", "Snowball Fight"
+];
+
+// --- State ---
+let teams = [
+  { name: "Team A", score: 0 },
+  { name: "Team B", score: 0 }
+];
+
+// phase: "idle" | "main" | "steal_setup" | "steal"
+let phase = "idle";
+let currentTeamIndex = 0;
+let performingTeamIndex = null;
+let stealTeamIndex = null;
+
+let timeRemaining = 0;
+let timerId = null;
+let timeUp = false;
+
+let passesUsed = 0;
+let currentCard = null;
+let passedCard = null;
+let usedCardIndices = new Set();
+let currentMode = null;
+let spinnerAngle = 0;
+let isSpinning = false;
+
+// scoring for steal rule
+let roundPointsEarned = 0;
+let lastRoundPointsEarned = 0;
+let lastPerformingTeamIndex = null;
+
+// last answer after time-up already counted?
+let lastAnswerMarked = false;
+
+// --- Audio ---
+let audioCtx = null;
+
+function initAudio() {
+  if (!audioCtx) {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (AudioContext) audioCtx = new AudioContext();
+  }
+}
+
+function playBeep(freq = 800, duration = 0.06, volume = 0.25) {
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = "square";
+  osc.frequency.value = freq;
+  gain.gain.value = volume;
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  const now = audioCtx.currentTime;
+  osc.start(now);
+  gain.gain.setValueAtTime(volume, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+  osc.stop(now + duration + 0.02);
+}
+function playTick() { playBeep(650, 0.05, 0.23); }
+function playCountdownBeep() { playBeep(1200, 0.09, 0.3); }
+function playAlarm() {
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = "sawtooth";
+  osc.frequency.value = 500;
+  gain.gain.value = 0.3;
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  const now = audioCtx.currentTime;
+  osc.start(now);
+  osc.frequency.setValueAtTime(500, now);
+  osc.frequency.linearRampToValueAtTime(900, now + 0.3);
+  osc.frequency.linearRampToValueAtTime(400, now + 0.6);
+  gain.gain.setValueAtTime(0.3, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+  osc.stop(now + 0.75);
+}
+
+// --- Speech for mode ---
+function speakMode(mode) {
+  if (!("speechSynthesis" in window) || !mode) return;
+  const utter = new SpeechSynthesisUtterance(mode + "!");
+  utter.lang = "en-GB";
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utter);
+}
+
+// --- DOM ---
+const teamElems = [0,1].map(i => document.getElementById(`team-${i}`));
+const teamScoreElems = [0,1].map(i => document.getElementById(`team-${i}-score`));
+const phaseLabel = document.getElementById("phase-label");
+const passStatus = document.getElementById("pass-status");
+const timerElem = document.getElementById("timer");
+const spinnerModeElem = document.getElementById("spinner-mode");
+const spinnerArrowElem = document.getElementById("spinner-arrow");
+const cardTextElem = document.getElementById("card-text");
+const btnCorrect = document.getElementById("btn-correct");
+const btnPass = document.getElementById("btn-pass");
+const btnStart = document.getElementById("btn-start");
+const btnReset = document.getElementById("btn-reset");
+
+// --- Utility ---
+function getNextCard() {
+  if (usedCardIndices.size >= ALL_CARDS.length) usedCardIndices.clear();
+  const avail = [];
+  for (let i = 0; i < ALL_CARDS.length; i++) if (!usedCardIndices.has(i)) avail.push(i);
+  if (!avail.length) return null;
+  const idx = avail[Math.floor(Math.random() * avail.length)];
+  usedCardIndices.add(idx);
+  return ALL_CARDS[idx];
+}
+
+function updateScoresUI() {
+  teams.forEach((team, i) => {
+    teamScoreElems[i].textContent = team.score;
+    teamElems[i].classList.toggle("active", i === currentTeamIndex && phase === "idle");
+  });
+}
+
+function updatePhaseUI() {
+  if (phase === "idle") {
+    phaseLabel.textContent = "Idle - next: " + teams[currentTeamIndex].name;
+    timerElem.textContent = "-";
+  } else if (phase === "main") {
+    phaseLabel.textContent = "Main round - " + teams[performingTeamIndex].name;
+  } else if (phase === "steal_setup") {
+    phaseLabel.textContent = "Steal setup - pass to " + teams[stealTeamIndex].name;
+  } else if (phase === "steal") {
+    phaseLabel.textContent = "Steal round - " + teams[stealTeamIndex].name;
+  }
+}
+
+function updateButtonsUI() {
+  if (phase === "idle") {
+    btnStart.disabled = false;
+    btnStart.textContent = "Start Round";
+    btnReset.disabled = false;
+    btnCorrect.disabled = true;
+    btnPass.disabled = true;
+  } else if (phase === "main") {
+    btnReset.disabled = false;
+    btnCorrect.disabled = !currentCard || (timeUp && lastAnswerMarked);
+    btnPass.disabled = timeUp || (passesUsed >= MAX_PASSES) || !currentCard;
+    if (timeUp) {
+      btnStart.disabled = false;
+      btnStart.textContent = "End Round";
+    } else {
+      btnStart.disabled = true;
+    }
+  } else if (phase === "steal_setup") {
+    btnStart.disabled = false;
+    btnStart.textContent = "Start Steal Round";
+    btnReset.disabled = false;
+    btnCorrect.disabled = true;
+    btnPass.disabled = true;
+  } else if (phase === "steal") {
+    btnReset.disabled = false;
+    btnCorrect.disabled = !currentCard;
+    btnPass.disabled = true;
+    if (timeUp) {
+      btnStart.disabled = false;
+      btnStart.textContent = "End Steal";
+    } else {
+      btnStart.disabled = true;
+    }
+  }
+}
+
+function updatePassUI() {
+  passStatus.textContent = `Passes used: ${passesUsed} / ${MAX_PASSES}`;
+}
+
+function updateCardUI() {
+  if (!currentCard) {
+    if (phase === "idle") {
+      cardTextElem.textContent = 'Press "Start Round" to begin';
+    } else if (phase === "steal_setup") {
+      cardTextElem.textContent = 'Pass the device to the other team and tap "Start Steal Round" when ready.';
+    } else {
+      cardTextElem.textContent = 'Waiting for card...';
+    }
+  } else {
+    cardTextElem.textContent = currentCard;
+  }
+}
+
+function updateModeUI() {
+  if (phase === "idle" || phase === "steal_setup") {
+    spinnerModeElem.textContent = "Ready…";
+  } else {
+    spinnerModeElem.textContent = currentMode ? currentMode : "Spinning…";
+  }
+}
+
+function setTimer(seconds) {
+  timeRemaining = seconds;
+  timerElem.textContent = timeRemaining + "s";
+}
+
+function startTimer() {
+  clearInterval(timerId);
+  timeUp = false;
+  timerId = setInterval(() => {
+    timeRemaining--;
+    if (timeRemaining <= 0) {
+      timeRemaining = 0;
+      timerElem.textContent = "0s";
+      clearInterval(timerId);
+      playAlarm();
+      timeUp = true;
+      updateButtonsUI();
+    } else {
+      timerElem.textContent = timeRemaining + "s";
+      if (phase === "main") {
+        if (timeRemaining > 10) playTick(); else playCountdownBeep();
+      } else if (phase === "steal") {
+        playCountdownBeep();
+      }
+    }
+  }, 1000);
+}
+
+// Spinner
+function spin() {
+  if (phase === "idle" || isSpinning) return;
+  if (!audioCtx) initAudio();
+
+  const mode = MODES[Math.floor(Math.random() * MODES.length)];
+  currentMode = mode;
+  updateModeUI();
+
+  let targetBase;
+  if (mode === "DRAW") targetBase = 0;
+  else if (mode === "MIME") targetBase = 90;
+  else if (mode === "HUM") targetBase = 180;
+  else targetBase = 270;
+
+  const extraTurns = 3 * 360;
+  const jitter = (Math.random() * 30) - 15;
+  spinnerAngle = spinnerAngle + extraTurns + targetBase + jitter;
+
+  isSpinning = true;
+  spinnerArrowElem.style.transition = "transform 0.9s cubic-bezier(0.19, 1, 0.22, 1)";
+  spinnerArrowElem.style.transform = `translate(-50%, -100%) rotate(${spinnerAngle}deg)`;
+
+  if (audioCtx) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+    osc.frequency.linearRampToValueAtTime(900, audioCtx.currentTime + 0.4);
+    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.45);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.5);
+  }
+
+  setTimeout(() => {
+    isSpinning = false;
+    speakMode(currentMode);
+  }, 950);
+}
+
+// --- Rounds ---
+function startMainRound() {
+  initAudio();
+  phase = "main";
+  performingTeamIndex = currentTeamIndex;
+  stealTeamIndex = null;
+  passesUsed = 0;
+  passedCard = null;
+  currentMode = null;
+  roundPointsEarned = 0;
+  lastRoundPointsEarned = 0;
+  lastPerformingTeamIndex = performingTeamIndex;
+  timeUp = false;
+  lastAnswerMarked = false;
+
+  setTimer(ROUND_DURATION);
+  startTimer();
+
+  currentCard = getNextCard();
+  updateCardUI();
+  updatePhaseUI();
+  updatePassUI();
+  updateModeUI();
+  updateButtonsUI();
+  updateScoresUI();
+  spin();
+}
+
+function endMainRound() {
+  clearInterval(timerId);
+  timeUp = false;
+  lastAnswerMarked = false;
+
+  if (passedCard) {
+    lastRoundPointsEarned = roundPointsEarned;
+    lastPerformingTeamIndex = performingTeamIndex;
+    setupStealRound();
+  } else {
+    roundPointsEarned = 0;
+    lastRoundPointsEarned = 0;
+    lastPerformingTeamIndex = null;
+    phase = "idle";
+    currentTeamIndex = (performingTeamIndex + 1) % teams.length;
+    currentCard = null;
+    currentMode = null;
+    updateCardUI();
+    updateModeUI();
+    updatePhaseUI();
+    updateButtonsUI();
+    updateScoresUI();
+  }
+}
+
+function setupStealRound() {
+  stealTeamIndex = (performingTeamIndex + 1) % teams.length;
+  currentTeamIndex = stealTeamIndex;
+  phase = "steal_setup";
+  currentCard = null;
+  currentMode = null;
+  updateCardUI();
+  updateModeUI();
+  updatePhaseUI();
+  updateButtonsUI();
+  updateScoresUI();
+}
+
+function startStealRoundActive() {
+  initAudio();
+  phase = "steal";
+  currentCard = passedCard;
+  currentMode = null;
+  timeUp = false;
+  setTimer(STEAL_DURATION);
+  startTimer();
+  updateCardUI();
+  updateModeUI();
+  updatePhaseUI();
+  updateButtonsUI();
+  updateScoresUI();
+  spin();
+}
+
+function endStealRound(success) {
+  clearInterval(timerId);
+  if (success && stealTeamIndex != null && lastPerformingTeamIndex != null) {
+    const pts = lastRoundPointsEarned || 0;
+    if (pts > 0) {
+      teams[lastPerformingTeamIndex].score -= pts;
+      if (teams[lastPerformingTeamIndex].score < 0) teams[lastPerformingTeamIndex].score = 0;
+      teams[stealTeamIndex].score += pts;
+    }
+  }
+  phase = "idle";
+  currentTeamIndex = stealTeamIndex;
+  currentCard = null;
+  passedCard = null;
+  currentMode = null;
+  roundPointsEarned = 0;
+  lastRoundPointsEarned = 0;
+  lastPerformingTeamIndex = null;
+  timeUp = false;
+  lastAnswerMarked = false;
+  updateCardUI();
+  updateModeUI();
+  updatePhaseUI();
+  updateButtonsUI();
+  updateScoresUI();
+}
+
+// --- Buttons ---
+function handleCorrect() {
+  if (!currentCard) return;
+
+  if (phase === "main" && performingTeamIndex != null) {
+    if (timeUp) {
+      // Only allow one last mark after time-up
+      if (lastAnswerMarked) return;
+      teams[performingTeamIndex].score += 1;
+      roundPointsEarned += 1;
+      lastAnswerMarked = true;
+      updateScoresUI();
+      updateButtonsUI();
+    } else {
+      teams[performingTeamIndex].score += 1;
+      roundPointsEarned += 1;
+      currentCard = getNextCard();
+      updateScoresUI();
+      updateCardUI();
+      spin();
+      updateButtonsUI();
+    }
+  } else if (phase === "steal" && stealTeamIndex != null) {
+    // Steal success, regardless of timer
+    endStealRound(true);
+  }
+}
+
+function handlePass() {
+  if (phase !== "main") return;
+  if (passesUsed >= MAX_PASSES) return;
+  if (!currentCard) return;
+
+  passesUsed++;
+  passedCard = currentCard;
+  currentCard = getNextCard();
+  updatePassUI();
+  updateCardUI();
+  spin();
+  updateButtonsUI();
+}
+
+function resetGame() {
+  clearInterval(timerId);
+  teams = [
+    { name: "Team A", score: 0 },
+    { name: "Team B", score: 0 }
+  ];
+  phase = "idle";
+  currentTeamIndex = 0;
+  performingTeamIndex = null;
+  stealTeamIndex = null;
+  passesUsed = 0;
+  usedCardIndices.clear();
+  currentCard = null;
+  passedCard = null;
+  currentMode = null;
+  spinnerAngle = 0;
+  isSpinning = false;
+  roundPointsEarned = 0;
+  lastRoundPointsEarned = 0;
+  lastPerformingTeamIndex = null;
+  timeUp = false;
+  lastAnswerMarked = false;
+
+  spinnerArrowElem.style.transition = "none";
+  spinnerArrowElem.style.transform = "translate(-50%, -100%) rotate(0deg)";
+
+  timerElem.textContent = "-";
+  cardTextElem.textContent = 'Press "Start Round" to begin';
+  spinnerModeElem.textContent = "Tap Start to begin";
+  updateScoresUI();
+  updatePhaseUI();
+  updatePassUI();
+  updateButtonsUI();
+}
+
+// --- Event listeners ---
+btnCorrect.addEventListener("click", handleCorrect);
+btnPass.addEventListener("click", handlePass);
+btnStart.addEventListener("click", () => {
+  if (phase === "idle") {
+    startMainRound();
+  } else if (phase === "steal_setup") {
+    startStealRoundActive();
+  } else if (phase === "main" && timeUp) {
+    endMainRound();
+  } else if (phase === "steal" && timeUp) {
+    endStealRound(false);
+  }
+});
+btnReset.addEventListener("click", resetGame);
+
+// --- Init ---
+resetGame();
+</script>
+
+</body>
+</html>
